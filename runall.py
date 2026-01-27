@@ -44,6 +44,8 @@ for repo in ls(pjoin(dirname(__file__), lang, "repos")):
         nums_len = 6
     elif lang == "typescript":
         cmd = ["node", "--stack-size=131072", "-r", "ts-node/register", pjoin(dirname(__file__), lang, "analyzer/analyzer.ts")]
+    elif lang == "rust":
+        cmd = ["docker", "run", "--rm", "--net=host", f"-v{repo}:/proj", "--workdir", "/analyzer", f"-v{pjoin(dirname(__file__), lang, "analyzer")}:/analyzer", "rust-nightly:2025-12-18", "/root/.cargo/bin/cargo", "run", "--quiet", "--release", "--", "/proj"]
 
     paths = []
     for root, dirs, files in os.walk(repo, followlinks=False):
@@ -60,4 +62,9 @@ for repo in ls(pjoin(dirname(__file__), lang, "repos")):
                 paths.append(os.path.join(root, file))
             elif lang == "typescript" and file.endswith(".ts"):
                 paths.append(os.path.join(root, file))
+            elif lang == "rust" and file.endswith(".rs"):
+                path = os.path.join(root, file)
+                path = path.removeprefix(repo + "/")
+                paths.append(path)
     run_split(cmd, paths, nums_len)
+
