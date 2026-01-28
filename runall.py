@@ -39,11 +39,13 @@ for repo in ls(pjoin(dirname(__file__), lang, "repos")):
         nums_len = 5
     elif lang == "java":
         cmd = ["java", "-Xss4m","-jar", pjoin(dirname(__file__), lang, "analyzer/app/build/libs/analyzer.jar")]
+        nums_len = 6
     elif lang == "go":
         cmd = [pjoin(dirname(__file__), lang, "analyzer")]
         nums_len = 6
     elif lang == "typescript":
         cmd = ["node", "--stack-size=131072", "-r", "ts-node/register", pjoin(dirname(__file__), lang, "analyzer/analyzer.ts")]
+        nums_len = 7
     elif lang == "rust":
         cmd = ["docker", "run", "--rm", "--net=host", f"-v{repo}:/proj", "--workdir", "/analyzer", f"-v{pjoin(dirname(__file__), lang, "analyzer")}:/analyzer", "rust-nightly:2025-12-18", "/root/.cargo/bin/cargo", "run", "--quiet", "--release", "--", "/proj"]
 

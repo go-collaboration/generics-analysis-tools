@@ -8,6 +8,8 @@ import com.github.javaparser.ast.body.CompactConstructorDeclaration
 import com.github.javaparser.ast.body.ConstructorDeclaration
 import com.github.javaparser.ast.body.MethodDeclaration
 import com.github.javaparser.ast.body.RecordDeclaration
+import com.github.javaparser.ast.expr.CastExpr
+import com.github.javaparser.ast.expr.InstanceOfExpr
 import kotlin.io.path.Path
 import kotlin.jvm.optionals.getOrNull
 
@@ -16,6 +18,8 @@ fun main(args: Array<String>) {
     var nonGenericFun = 0
     var genericTy = 0
     var nonGenericTy = 0
+    var casts = 0
+    var instanceOfs = 0
 
     val config = ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21)
     val funTypes = listOf(
@@ -42,6 +46,9 @@ fun main(args: Array<String>) {
                         if (it.isGeneric) genericFun++ else nonGenericFun++
                     }
                 }
+
+                casts += compilationUnit.findAll(CastExpr::class.java).size
+                instanceOfs += compilationUnit.findAll(InstanceOfExpr::class.java).size
             } else {
                 System.err.println("unable to parse $path")
             }
@@ -49,5 +56,5 @@ fun main(args: Array<String>) {
             System.err.println("unable to analyze $path due to stack overflow")
         }
     }
-    println("$genericTy,$nonGenericTy,$genericFun,$nonGenericFun")
+    println("$genericTy,$nonGenericTy,$genericFun,$nonGenericFun,$casts,$instanceOfs")
 }
