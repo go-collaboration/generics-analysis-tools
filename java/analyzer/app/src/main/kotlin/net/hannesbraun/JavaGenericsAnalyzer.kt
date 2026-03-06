@@ -14,6 +14,7 @@ import kotlin.io.path.Path
 import kotlin.jvm.optionals.getOrNull
 
 fun main(args: Array<String>) {
+    var parseErrors = 0
     var genericFun = 0
     var nonGenericFun = 0
     var genericTy = 0
@@ -47,14 +48,18 @@ fun main(args: Array<String>) {
                     }
                 }
 
-                casts += compilationUnit.findAll(CastExpr::class.java).size
+                compilationUnit.findAll(CastExpr::class.java).forEach {
+                    if (!it.type.isPrimitiveType) casts++
+                }
                 instanceOfs += compilationUnit.findAll(InstanceOfExpr::class.java).size
             } else {
+                parseErrors++
                 System.err.println("unable to parse $path")
             }
         } catch (_: StackOverflowError) {
+            parseErrors++
             System.err.println("unable to analyze $path due to stack overflow")
         }
     }
-    println("$genericTy,$nonGenericTy,$genericFun,$nonGenericFun,$casts,$instanceOfs")
+    println("$parseErrors,$genericTy,$nonGenericTy,$genericFun,$nonGenericFun,$casts,$instanceOfs")
 }

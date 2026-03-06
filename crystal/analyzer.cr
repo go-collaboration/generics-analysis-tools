@@ -43,6 +43,7 @@ class GenericClassCounter < Crystal::Visitor
 end
 
 counter = GenericClassCounter.new
+parse_errors = 0
 
 ARGV.each do |path|
   code = File.read(path)
@@ -51,6 +52,7 @@ ARGV.each do |path|
     parser.filename = path
     node = parser.parse
   rescue
+    parse_errors += 1
     STDERR.puts "unable to parse #{path}"
     next
   end
@@ -62,4 +64,4 @@ end
 # puts "Non-Generic classes: #{counter.class_no_ty_vars}"
 # puts "Generic modules: #{counter.mod_ty_vars}"
 # puts "Non-Generic modules: #{counter.mod_no_ty_vars}"
-puts "#{counter.class_ty_vars},#{counter.class_no_ty_vars},0,0"
+puts "#{parse_errors},#{counter.class_ty_vars},#{counter.class_no_ty_vars},0,0"

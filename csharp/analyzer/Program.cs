@@ -14,6 +14,8 @@ class GenericCounter
             Console.WriteLine("Usage: Analyzer [<path-to-source.cs> ...]");
             return;
         }
+		var parseErrors = 0;
+		
 		var genericTypes = 0;
 		var nonGenericTypes = 0;
 
@@ -21,16 +23,17 @@ class GenericCounter
 		var nonGenericFunctions = 0;
 
 		var casts = 0;
+		var isPatterns = 0;
 
 	foreach (var path in args) {
-		if (!File.Exists(path))
-		{
-		    Console.WriteLine($"File not found: {path}");
-		    return;
-		}
-
 		var code = File.ReadAllText(path);
 		var tree = CSharpSyntaxTree.ParseText(code);
+		var hasErrors = tree.GetDiagnostics().Any(d => d.Severity == DiagnosticSeverity.Error);
+		if (hasErrors) {
+			parseErrors++;
+			Console.Error.WriteLine($"unable to parse {path}");
+			continue;
+		}
 		var root = tree.GetCompilationUnitRoot();
 
 		// Count generic type declarations
@@ -49,10 +52,11 @@ class GenericCounter
 		    .Count();
 
 		casts += root.DescendantNodes().OfType<CastExpressionSyntax>().Count();
+		casts += root.DescendantNodes().OfType<IsPatternExpressionSyntax>().Count();
 	}
 
 	nonGenericTypes -= genericTypes;
 	nonGenericFunctions -= genericFunctions;
-	Console.WriteLine($"{genericTypes},{nonGenericTypes},{genericFunctions},{nonGenericFunctions},{casts}");
+	Console.WriteLine($"{parseErrors},{genericTypes},{nonGenericTypes},{genericFunctions},{nonGenericFunctions},{casts},{isPatterns}");
     }
 }

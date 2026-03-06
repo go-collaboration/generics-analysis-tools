@@ -77,6 +77,7 @@ if (process.argv.length < 3) {
   process.exit(1);
 }
 
+let parseErrors = 0;
 let genericTypes = 0;
 let nonGenericTypes = 0;
 let genericFunctions = 0;
@@ -96,10 +97,11 @@ for (let i = 2; i < process.argv.length; i++) {
     typeOfExpressions += result.typeOfExpressions;
     instanceOfKeywords += result.instanceOfKeywords;
   } catch (err) {
+    parseErrors++;
     console.error(`unable to parse ${filePath}`);
     continue;
   }
 }
 
-console.log(`${genericTypes},${nonGenericTypes},${genericFunctions},${nonGenericFunctions},${casts},${typeOfExpressions},${instanceOfKeywords}`);
+console.log(`${parseErrors},${genericTypes},${nonGenericTypes},${genericFunctions},${nonGenericFunctions},${casts},${typeOfExpressions},${instanceOfKeywords}`);
 

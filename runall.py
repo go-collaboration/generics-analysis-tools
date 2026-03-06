@@ -32,6 +32,10 @@ def checkout(path, hash):
     cd(old_pwd)
 
 
+def strip_repo_prefix(repo, paths):
+    return list(map(lambda path: path.removeprefix(repo + "/"), paths))
+
+
 def find_files(repo):
     paths = []
     for root, dirs, files in os.walk(repo, followlinks=False):
@@ -49,15 +53,16 @@ def find_files(repo):
             elif lang == "typescript" and file.endswith(".ts"):
                 paths.append(os.path.join(root, file))
             elif lang == "rust" and file.endswith(".rs"):
-                path = os.path.join(root, file)
-                path = path.removeprefix(repo + "/")
-                paths.append(path)
-    return paths
+                paths.append(os.path.join(root, file))
+    analyzer_args = paths
+    if lang == "rust":
+        analyzer_args = strip_repo_prefix(repo, paths)
+    return paths, analyzer_args
 
 
 def cloc(files):
     sum = 0
-    for part in [files[i:i+16000] for i in range(0, len(files), 16000)]:
+    for part in [files[i:i+6000] for i in range(0, len(files), 6000)]:
         cmd = ["cloc", "--json"]
         cmd.extend(part)
         res = run(cmd, captureStdout=True, captureStderr=True, onError="raise")
@@ -86,40 +91,47 @@ def run_split(base_cmd, paths, nums_len):
 
 lang = sys.argv[1]
 with_history = len(sys.argv) > 2 and sys.argv[2] == "history"
-for repo in ls(pjoin(dirname(__file__), lang, "repos")):
+for repo_num, repo in enumerate(ls(pjoin(dirname(__file__), lang, "repos"))):
     name = basename(repo)
     name = name.split("#")
     name = name[0] + "/" + name[1]
-    nums_len = 4
     if lang == "crystal":
         cmd = [pjoin(dirname(__file__), lang, "bin/analyzer")]
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions"]
     elif lang == "csharp":
         cmd = [pjoin(dirname(__file__), lang, "analyzer/bin/Release/net9.0/Analyzer")]
-        nums_len = 5
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "casts", "is_patterns"]
     elif lang == "java":
         cmd = ["java", "-Xss4m","-jar", pjoin(dirname(__file__), lang, "analyzer/app/build/libs/analyzer.jar")]
-        nums_len = 6
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "casts", "instance_ofs"]
     elif lang == "go":
         cmd = [pjoin(dirname(__file__), lang, "analyzer")]
-        nums_len = 6
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "non_trivial_type_bounds", "trivial_type_bounds", "type_assertions", "type_switches"]
     elif lang == "typescript":
         cmd = ["node", "--stack-size=131072", "-r", "ts-node/register", pjoin(dirname(__file__), lang, "analyzer/analyzer.ts")]
-        nums_len = 7
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "casts", "type_ofs", "instance_ofs"]
     elif lang == "rust":
         cmd = ["docker", "run", "--rm", "--net=host", f"-v{repo}:/proj", "--workdir", "/analyzer", f"-v{pjoin(dirname(__file__), lang, "analyzer")}:/analyzer", "rust-nightly:2025-12-18", "/root/.cargo/bin/cargo", "run", "--quiet", "--release", "--", "/proj"]
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions"]
+
+    if repo_num == 0:
+        header = ["repository", "loc", "num_files"] + analyzer_columns
+        if with_history:
+            header.insert(1, "commit_time")
+        print(",".join(header))
 
     if not with_history:
-        paths = find_files(repo)
-        print(f"{name},{cloc(paths)},", end="")
-        run_split(cmd, paths, nums_len)
+        paths, analyzer_args = find_files(repo)
+        print(f"{name},{cloc(paths)},{len(paths)},", end="")
+        run_split(cmd, analyzer_args, len(analyzer_columns))
     else:
         commits = commit_list(repo)
         for i, commit in enumerate(commits):
             if i > 0:
                 checkout(repo, commit[0])
-            paths = find_files(repo)
-            print(f"{name},{commit[1]},{cloc(paths)},", end="")
-            run_split(cmd, paths, nums_len)
+            paths, analyzer_args = find_files(repo)
+            print(f"{name},{commit[1]},{cloc(paths)},{len(paths)},", end="")
+            run_split(cmd, analyzer_args, len(analyzer_columns))
             if commit[1] < 1639738800: # 2021-12-17 (a few months before the Go 1.18 release with generics: https://www.youtube.com/watch?v=Pa_e9EeCdy8)
                 break
         checkout(repo, commits[0][0])

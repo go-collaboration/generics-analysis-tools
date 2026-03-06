@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
 struct AstWalker {
+    parse_errors: u64,
     generic_ty: u64,
     non_generic_ty: u64,
     generic_fun: u64,
@@ -24,6 +25,7 @@ struct AstWalker {
 impl AstWalker {
     fn new() -> Self {
         Self {
+            parse_errors: 0,
             generic_ty: 0,
             non_generic_ty: 0,
             generic_fun: 0,
@@ -33,8 +35,12 @@ impl AstWalker {
 
     fn print(&self) {
         println!(
-            "{},{},{},{}",
-            self.generic_ty, self.non_generic_ty, self.generic_fun, self.non_generic_fun
+            "{},{},{},{},{}",
+            self.parse_errors,
+            self.generic_ty,
+            self.non_generic_ty,
+            self.generic_fun,
+            self.non_generic_fun
         );
     }
 }
@@ -206,7 +212,10 @@ fn main() {
             format!("--edition={}", edition).to_string(),
         ];
 
-        let _ = rustc_driver::catch_fatal_errors(|| run_compiler(&rustc_args, &mut cb));
+        let r = rustc_driver::catch_fatal_errors(|| run_compiler(&rustc_args, &mut cb));
+        if r.is_err() {
+            cb.walker.lock().unwrap().parse_errors += 1;
+        }
     }
 
     cb.walker.lock().unwrap().print();
