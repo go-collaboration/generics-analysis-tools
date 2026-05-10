@@ -132,6 +132,7 @@ for repo_num, repo in enumerate(ls(pjoin(dirname(__file__), lang, "repos"))):
             paths, analyzer_args = find_files(repo)
             print(f"{name},{commit[1]},{cloc(paths)},{len(paths)},", end="")
             run_split(cmd, analyzer_args, len(analyzer_columns))
-            if commit[1] < 1639738800: # 2021-12-17 (a few months before the Go 1.18 release with generics: https://www.youtube.com/watch?v=Pa_e9EeCdy8)
+            history_start = 1639738800 # 2021-12-17 (a few months before the Go 1.18 release with generics: https://www.youtube.com/watch?v=Pa_e9EeCdy8)
+            if commit[1] < history_start and lang != "java":
                 break
         checkout(repo, commits[0][0])
