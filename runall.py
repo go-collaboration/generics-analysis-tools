@@ -10,16 +10,18 @@ node_path = "" # you likely need to manually set your node path here. i was too 
 def commit_list(path):
     old_pwd = pwd()
     cd(path)
-    cmd = ["git", "log", "--format=%H %ct"]
+    cmd = ["git", "log", "--format=%H %ct %at"]
     res = run(cmd, captureStdout=True, onError="raise")
     commits = list(map(lambda l: l.split(" "), res.stdout.splitlines()))
-    commits = list(map(lambda l: (l[0], int(l[1])), commits))
+    commits = list(map(lambda l: (l[0], int(l[1]), int(l[2])), commits))
     selected_commits = []
     i = 0
     while i < len(commits):
         selected_commits.append(commits[i])
         while i < len(commits) and commits[i][1] > selected_commits[-1][1] - 90 * 86400:
             i += 1
+            if i < len(commits) and "BlueJ-Greenfoot" in path and commits[i][1] < 1490626634:
+                commits[i] = (commits[i][0], commits[i][2], commits[i][2])
     cd(old_pwd)
     return selected_commits
 
