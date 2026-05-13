@@ -30,7 +30,7 @@ Error messages will be printed to stderr. stdout can be redirected to a file and
 Build the analyzer for Go:
 
     cd go
-    go build
+    go build -o analyzer analyzer.go
 
 ### Java
 
