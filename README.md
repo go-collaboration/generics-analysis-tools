@@ -14,11 +14,11 @@ These tools are invoked using the `runall.py` script. This script has the follow
 Increase the stack size before running the analysis.
 I'm not sure what the upper limit is, but the following worked for our use case:
 
-  ulimit -s 131072
+    ulimit -s 131072
 
 Run the analysis like this:
 
-  python runall.py go
+    python runall.py go
 
 Change "go" to the the language of your choice.
 When analyzing the history of repositories is desired, add "history" as a second argument.
@@ -29,22 +29,22 @@ Error messages will be printed to stderr. stdout can be redirected to a file and
 
 Build the analyzer for Go:
 
-  cd go
-  go build
+    cd go
+    go build
 
 ### Java
 
 Build the analyer for Java:
 
-  cd java/analyzer
-  ./gradlew shadowJar
+    cd java/analyzer
+    ./gradlew shadowJar
 
 ### Rust
 
 To build the analyzer for Rust, a nightly toolchain is required.
 As this is not always available, the toolchain is installed into a Docker image.
 
-  cd rust
-  sh build.sh
+    cd rust
+    sh build.sh
 
 If you have a nightly toolchain available, you can probably also use `cargo build --release` and update `runall.py` accordingly.
