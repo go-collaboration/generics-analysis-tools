@@ -9,13 +9,36 @@ import (
 	"reflect"
 )
 
+type Counter []int
+
+func (c *Counter) Count(i int) {
+	for len(*c) <= i {
+		*c = append(*c, 0)
+	}
+	(*c)[i]++
+}
+
+func (c *Counter) String() string {
+	out := "0:0"
+	if len(*c) != 0 {
+		out = fmt.Sprintf("%d", (*c)[0])
+	}
+	for i := 1; i < len(*c); i++ {
+		out += fmt.Sprintf(":%d", (*c)[i])
+	}
+	if len(*c) == 1 {
+		out += ":0"
+	}
+	return out
+}
+
 func isTrivialTypeBound(expr ast.Expr) bool {
 	trivial := false
 	switch t := expr.(type) {
 	case *ast.Ident:
 		trivial = t.Name == "any"
 	case *ast.InterfaceType:
-		trivial = t.Methods.NumFields() == 0
+		trivial = t.Methods.NumFields() == 0 // interface{}
 	case *ast.BinaryExpr:
 		if t.Op != token.OR {
 			fmt.Fprintf(os.Stderr, "type bound analysis may be wrong for: %v\n", expr)
@@ -27,7 +50,7 @@ func isTrivialTypeBound(expr ast.Expr) bool {
 		if t.Op != token.TILDE {
 			fmt.Fprintf(os.Stderr, "type bound analysis may be wrong for: %v\n", expr)
 		}
-		trivial = isTrivialTypeBound(t.X)
+		trivial = false
 	case *ast.ArrayType:
 		trivial = false
 	case *ast.MapType:
@@ -70,10 +93,30 @@ func main() {
 	nonGenericTy := 0
 	genericFun := 0
 	nonGenericFun := 0
+	genericStructs := 0
+	genericInterfaces := 0
+	genericTyAliases := 0
+	genericOther := 0
 	nonTrivialTypeBounds := 0
 	trivialTypeBounds := 0
+	nonTrivialTypeBoundsStructs := 0
+	trivialTypeBoundsStructs := 0
+	nonTrivialTypeBoundsInterfaces := 0
+	trivialTypeBoundsInterfaces := 0
+	nonTrivialTypeBoundsFunctions := 0
+	trivialTypeBoundsFunctions := 0
+	nonTrivialTypeBoundsTyAliases := 0
+	trivialTypeBoundsTyAliases := 0
+	nonTrivialTypeBoundsOther := 0
+	trivialTypeBoundsOther := 0
 	typeAssertions := 0
 	typeSwitches := 0
+	typeParameterCounter := Counter([]int{})
+	typeParameterCounterStructs := Counter([]int{})
+	typeParameterCounterInterfaces := Counter([]int{})
+	typeParameterCounterFunctions := Counter([]int{})
+	typeParameterCounterTyAliases := Counter([]int{})
+	typeParameterCounterOther := Counter([]int{})
 
 	for _, path := range os.Args[1:] {
 		src, _ := os.ReadFile(path)
@@ -96,6 +139,10 @@ func main() {
 						nt, t := countTrivialTypeBounds(node.Type.TypeParams)
 						nonTrivialTypeBounds += nt
 						trivialTypeBounds += t
+						nonTrivialTypeBoundsFunctions += nt
+						trivialTypeBoundsFunctions += t
+						typeParameterCounter.Count(node.Type.TypeParams.NumFields())
+						typeParameterCounterFunctions.Count(node.Type.TypeParams.NumFields())
 					} else {
 						nonGenericFun++
 					}
@@ -106,6 +153,32 @@ func main() {
 					nt, t := countTrivialTypeBounds(node.TypeParams)
 					nonTrivialTypeBounds += nt
 					trivialTypeBounds += t
+					typeParameterCounter.Count(node.TypeParams.NumFields())
+					if node.Assign.IsValid() {
+						// Type alias
+						nonTrivialTypeBoundsTyAliases += nt
+						trivialTypeBoundsTyAliases += t
+						genericTyAliases++
+						typeParameterCounterTyAliases.Count(node.TypeParams.NumFields())
+					} else {
+						switch node.Type.(type) {
+						case *ast.StructType:
+							nonTrivialTypeBoundsStructs += nt
+							trivialTypeBoundsStructs += t
+							genericStructs++
+							typeParameterCounterStructs.Count(node.TypeParams.NumFields())
+						case *ast.InterfaceType:
+							nonTrivialTypeBoundsInterfaces += nt
+							trivialTypeBoundsInterfaces += t
+							genericInterfaces++
+							typeParameterCounterInterfaces.Count(node.TypeParams.NumFields())
+						default:
+							nonTrivialTypeBoundsOther += nt
+							trivialTypeBoundsOther += t
+							genericOther++
+							typeParameterCounterOther.Count(node.TypeParams.NumFields())
+						}
+					}
 				} else {
 					nonGenericTy++
 				}
@@ -118,5 +191,5 @@ func main() {
 		})
 	}
 
-	fmt.Printf("%d,%d,%d,%d,%d,%d,%d,%d,%d\n", parseErrors, genericTy, nonGenericTy, genericFun, nonGenericFun, nonTrivialTypeBounds, trivialTypeBounds, typeAssertions, typeSwitches)
+	fmt.Printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s,%s,%s,%s\n", parseErrors, genericTy, nonGenericTy, genericStructs, genericInterfaces, genericTyAliases, genericOther, genericFun, nonGenericFun, nonTrivialTypeBounds, trivialTypeBounds, nonTrivialTypeBoundsStructs, trivialTypeBoundsStructs, nonTrivialTypeBoundsInterfaces, trivialTypeBoundsInterfaces, nonTrivialTypeBoundsFunctions, trivialTypeBoundsFunctions, nonTrivialTypeBoundsTyAliases, trivialTypeBoundsTyAliases, nonTrivialTypeBoundsOther, trivialTypeBoundsOther, typeAssertions, typeSwitches, typeParameterCounter.String(), typeParameterCounterStructs.String(), typeParameterCounterInterfaces.String(), typeParameterCounterFunctions.String(), typeParameterCounterTyAliases.String(), typeParameterCounterOther.String())
 }

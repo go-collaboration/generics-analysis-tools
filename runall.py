@@ -85,10 +85,18 @@ def run_split(base_cmd, paths, nums_len):
             except OSError:
                 print("error! cmd len:", len(cmd))
                 exit(1)
-            cur_nums = list(map(lambda x: int(x), res.stdout.split(",")))
+            cur_nums = list(map(lambda x: list(map(lambda y: int(y), x.split(":"))) if ":" in x else int(x), res.stdout.split(",")))
             for i in range(len(nums)):
-                nums[i] += cur_nums[i]
-    print(",".join(map(lambda x: str(x), nums)))
+                if type(cur_nums[i]) is list:
+                    if nums[i] == 0:
+                        nums[i] = []
+                    for j, num in enumerate(cur_nums[i]):
+                        while j >= len(nums[i]):
+                            nums[i].append(0)
+                        nums[i][j] += num
+                else:
+                    nums[i] += cur_nums[i]
+    print(",".join(map(lambda x: ":".join(map(lambda y: str(y), x)) if type(x) is list else str(x), nums)))
 
 
 lang = sys.argv[1]
@@ -105,16 +113,16 @@ for repo_num, repo in enumerate(ls(pjoin(dirname(__file__), lang, "repos"))):
         analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "casts", "is_patterns"]
     elif lang == "java":
         cmd = ["java", "-Xss4m","-jar", pjoin(dirname(__file__), lang, "analyzer/app/build/libs/analyzer.jar")]
-        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "casts", "instance_ofs"]
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_classes", "generic_interfaces", "generic_functions", "non_generic_functions", "generic_non_static_methods", "generic_static_methods", "casts", "instance_ofs", "type_parameter_count", "type_parameter_count_classes", "type_parameter_count_interfaces", "type_parameter_count_non_static_methods", "type_parameter_count_static_methods", "non_trivial_type_bounds", "trivial_type_bounds", "non_trivial_type_bounds_classes", "trivial_type_bounds_classes", "non_trivial_type_bounds_interfaces", "trivial_type_bounds_interfaces", "non_trivial_type_bounds_non_static_methods", "trivial_type_bounds_non_static_methods", "non_trivial_type_bounds_static_methods", "trivial_type_bounds_static_methods"]
     elif lang == "go":
         cmd = [pjoin(dirname(__file__), lang, "analyzer")]
-        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "non_trivial_type_bounds", "trivial_type_bounds", "type_assertions", "type_switches"]
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_structs", "generic_interfaces", "generic_type_aliases", "generic_other", "generic_functions", "non_generic_functions", "non_trivial_type_bounds", "trivial_type_bounds", "non_trivial_type_bounds_structs", "trivial_type_bounds_structs", "non_trivial_type_bounds_interfaces", "trivial_type_bounds_interfaces", "non_trivial_type_bounds_functions", "trivial_type_bounds_functions", "non_trivial_type_bounds_type_aliases", "trivial_type_bounds_type_aliases", "non_trivial_type_bounds_other", "trivial_type_bounds_other", "type_assertions", "type_switches", "type_parameter_count", "type_parameter_count_structs", "type_parameter_count_interfaces", "type_parameter_count_functions", "type_parameter_count_type_aliases", "type_parameter_count_other"]
     elif lang == "typescript":
         cmd = ["node", "--stack-size=131072", "-r", "ts-node/register", pjoin(dirname(__file__), lang, "analyzer/analyzer.ts")]
         analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions", "casts", "type_ofs", "instance_ofs"]
     elif lang == "rust":
         cmd = ["docker", "run", "--rm", "--net=host", f"-v{repo}:/proj", "--workdir", "/analyzer", f"-v{pjoin(dirname(__file__), lang, "analyzer")}:/analyzer", "rust-nightly:2025-12-18", "/root/.cargo/bin/cargo", "run", "--quiet", "--release", "--", "/proj"]
-        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_functions", "non_generic_functions"]
+        analyzer_columns = ["parse_errors", "generic_types", "non_generic_types", "generic_structs", "generic_traits", "generic_type_aliases", "generic_other", "generic_functions", "non_generic_functions", "generic_functions_only", "generic_methods", "type_parameter_count", "type_parameter_count_structs", "type_parameter_count_traits", "type_parameter_count_functions", "type_parameter_count_methods", "type_parameter_count_type_aliases", "type_parameter_count_other", "non_trivial_type_bounds", "trivial_type_bounds", "non_trivial_type_bounds_structs", "trivial_type_bounds_structs", "non_trivial_type_bounds_traits", "trivial_type_bounds_traits", "non_trivial_type_bounds_functions", "trivial_type_bounds_functions", "non_trivial_type_bounds_methods", "trivial_type_bounds_methods", "non_trivial_type_bounds_type_aliases", "trivial_type_bounds_type_aliases", "non_trivial_type_bounds_other", "trivial_type_bounds_other"]
 
     if repo_num == 0:
         header = ["repository", "loc", "num_files"] + analyzer_columns
