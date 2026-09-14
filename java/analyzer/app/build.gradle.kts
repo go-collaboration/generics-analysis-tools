@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.javaparser:javaparser-symbol-solver-core:3.27.1")
+    implementation("com.github.javaparser:javaparser-symbol-solver-core:3.28.2")
 }
 
 java {
