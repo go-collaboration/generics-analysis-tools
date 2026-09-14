@@ -96,7 +96,7 @@ fun main(args: Array<String>) {
     var casts = 0
     var instanceOfs = 0
 
-    val config = ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_21)
+    val config = ParserConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_25)
     val funTypes = listOf(
         CallableDeclaration::class.java,
         CompactConstructorDeclaration::class.java,
