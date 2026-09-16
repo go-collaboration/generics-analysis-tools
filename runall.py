@@ -68,7 +68,7 @@ def cloc(files):
         cmd = ["cloc", "--json"]
         cmd.extend(part)
         res = run(cmd, captureStdout=True, captureStderr=True, onError="raise")
-        sum += int(json.loads(res.stdout)["SUM"]["code"])
+        sum += int(json.loads(res.stdout).get("SUM", {}).get("code", 0))
     return sum
 
 
