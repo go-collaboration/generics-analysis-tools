@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from shell import *
 
 
@@ -96,11 +97,12 @@ def run_split(base_cmd, paths, nums_len):
                         nums[i][j] += num
                 else:
                     nums[i] += cur_nums[i]
-    print(",".join(map(lambda x: ":".join(map(lambda y: str(y), x)) if type(x) is list else str(x), nums)))
+    return ",".join(map(lambda x: ":".join(map(lambda y: str(y), x)) if type(x) is list else str(x), nums))
 
 
 lang = sys.argv[1]
 with_history = len(sys.argv) > 2 and sys.argv[2] == "history"
+executor = ThreadPoolExecutor(max_workers=1)
 for repo_num, repo in enumerate(ls(pjoin(dirname(__file__), lang, "repos"))):
     name = basename(repo)
     name = name.split("#")
@@ -132,16 +134,18 @@ for repo_num, repo in enumerate(ls(pjoin(dirname(__file__), lang, "repos"))):
 
     if not with_history:
         paths, analyzer_args = find_files(repo)
-        print(f"{name},{cloc(paths)},{len(paths)},", end="")
-        run_split(cmd, analyzer_args, len(analyzer_columns))
+        loc = executor.submit(cloc, paths)
+        analyzer_res = run_split(cmd, analyzer_args, len(analyzer_columns))
+        print(f"{name},{loc.result()},{len(paths)},{analyzer_res}")
     else:
         commits = commit_list(repo)
         for i, commit in enumerate(commits):
             if i > 0:
                 checkout(repo, commit[0])
             paths, analyzer_args = find_files(repo)
-            print(f"{name},{commit[1]},{cloc(paths)},{len(paths)},", end="")
-            run_split(cmd, analyzer_args, len(analyzer_columns))
+            loc = executor.submit(cloc, paths)
+            analyzer_res = run_split(cmd, analyzer_args, len(analyzer_columns))
+            print(f"{name},{commit[1]},{loc.result()},{len(paths)},{analyzer_res}")
             history_start = 1639738800 # 2021-12-17 (a few months before the Go 1.18 release with generics: https://www.youtube.com/watch?v=Pa_e9EeCdy8)
             if commit[1] < history_start and lang != "java":
                 break
